@@ -1,0 +1,16 @@
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed
+  datasource:
+    password: test
+app:
+  jwt:
+    secret: test-secret-test-secret-test-secret-test-secret-1234
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d
+  s3:
+    access-key: test
+    secret-key: test
+  stripe:
+    secret-key: sk_test_dummy
+    webhook-secret: whsec_dummy
