@@ -1,0 +1,4 @@
+ALTER TABLE orders DROP CONSTRAINT orders_status_check;
+UPDATE orders SET status = 'PENDING_PAYMENT' WHERE status = 'PENDING';
+ALTER TABLE orders ADD CONSTRAINT orders_status_check
+    CHECK (status IN ('PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED'));
