@@ -1,0 +1,82 @@
+/*
+ * The template ships a precompiled Tailwind build that only contains the utilities its pages use.
+ * Anything the storefront needs beyond that lives here (kept deliberately tiny).
+ */
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.page-item.is-disabled .page-link {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Revenue chart colours (the template CSS has no fill/stroke utilities). */
+.chart-line {
+  stroke: rgb(var(--color-primary));
+}
+
+.chart-dot {
+  fill: rgb(var(--color-primary));
+}
+
+.chart-area {
+  fill: rgb(var(--color-primary) / 0.1);
+}
+
+.checkout-form .checkout-control {
+  border-bottom-width: 2px;
+}
+
+.checkout-form .checkout-control:hover,
+.checkout-form .checkout-control:focus {
+  border-bottom-color: rgb(var(--color-primary));
+}
+
+.checkout-form .checkout-control[aria-invalid="true"] {
+  border-color: rgb(var(--color-danger));
+}
+
+.app-toasts {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2147483647;
+  display: grid;
+  gap: 0.75rem;
+  width: min(24rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  pointer-events: none;
+}
+
+.app-toasts .app-toast {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  pointer-events: auto;
+}
+
+.app-toast__text {
+  overflow-wrap: anywhere;
+}
+
+.app-toast__close {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.25rem;
+}
+
+.app-toast__close:focus-visible {
+  outline: 2px solid currentColor;
+}
