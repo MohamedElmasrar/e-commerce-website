@@ -11,5 +11,8 @@ public record ShippingAddressRequest(
         @NotBlank @Size(max = 120) String city,
         @Size(max = 120) String state,
         @NotBlank @Size(max = 20) String postalCode,
-        @NotBlank @Pattern(regexp = "^[A-Z]{2}$", message = "must be a 2-letter uppercase country code") String country) {
-}
+        @NotBlank
+                @Pattern(
+                        regexp = "^[A-Z]{2}$",
+                        message = "must be a 2-letter uppercase country code")
+                String country) {}

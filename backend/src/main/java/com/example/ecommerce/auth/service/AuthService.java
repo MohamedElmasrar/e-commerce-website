@@ -46,19 +46,24 @@ public class AuthService {
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new ConflictException("Email is already registered");
         }
-        User user = userRepository.save(User.builder()
-                .email(email)
-                .passwordHash(passwordEncoder.encode(request.password()))
-                .fullName(request.fullName().trim())
-                .role(Role.CUSTOMER)
-                .build());
+        User user =
+                userRepository.save(
+                        User.builder()
+                                .email(email)
+                                .passwordHash(passwordEncoder.encode(request.password()))
+                                .fullName(request.fullName().trim())
+                                .role(Role.CUSTOMER)
+                                .build());
         return issue(user);
     }
 
     @Transactional
     public AuthResult login(LoginRequest request) {
-        User user = userRepository.findByEmailIgnoreCase(request.email().trim())
-                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+        User user =
+                userRepository
+                        .findByEmailIgnoreCase(request.email().trim())
+                        .orElseThrow(
+                                () -> new BadCredentialsException("Invalid email or password"));
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BadCredentialsException("Invalid email or password");
         }
@@ -74,14 +79,18 @@ public class AuthService {
         if (rawToken == null || rawToken.isBlank()) {
             throw new BadCredentialsException("Invalid refresh token");
         }
-        RefreshToken stored = refreshTokenRepository.findByTokenHash(hash(rawToken))
-                .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
+        RefreshToken stored =
+                refreshTokenRepository
+                        .findByTokenHash(hash(rawToken))
+                        .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
         if (stored.isRevoked() || stored.getExpiresAt().isBefore(Instant.now())) {
             throw new BadCredentialsException("Invalid refresh token");
         }
-        User user = userRepository.findById(stored.getUserId())
-                .filter(User::isEnabled)
-                .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
+        User user =
+                userRepository
+                        .findById(stored.getUserId())
+                        .filter(User::isEnabled)
+                        .orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
         stored.setRevoked(true);
         return issue(user);
     }
@@ -98,19 +107,26 @@ public class AuthService {
         byte[] bytes = new byte[48];
         RANDOM.nextBytes(bytes);
         String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        refreshTokenRepository.save(RefreshToken.builder()
-                .userId(user.getId())
-                .tokenHash(hash(raw))
-                .expiresAt(Instant.now().plus(jwtProperties.refreshTokenTtl()))
-                .build());
-        AuthResponse body = new AuthResponse(jwtService.generateAccessToken(user), "Bearer",
-                jwtService.accessTokenTtlSeconds(), userMapper.toResponse(user));
+        refreshTokenRepository.save(
+                RefreshToken.builder()
+                        .userId(user.getId())
+                        .tokenHash(hash(raw))
+                        .expiresAt(Instant.now().plus(jwtProperties.refreshTokenTtl()))
+                        .build());
+        AuthResponse body =
+                new AuthResponse(
+                        jwtService.generateAccessToken(user),
+                        "Bearer",
+                        jwtService.accessTokenTtlSeconds(),
+                        userMapper.toResponse(user));
         return new AuthResult(body, raw);
     }
 
     static String hash(String raw) {
         try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8));
+            byte[] digest =
+                    MessageDigest.getInstance("SHA-256")
+                            .digest(raw.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);

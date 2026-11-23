@@ -11,7 +11,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface CartRepository extends JpaRepository<Cart, Long> {
 
-    /** Row lock on the cart only (items load lazily) so concurrent checkouts of one cart serialize. */
+    /**
+     * Row lock on the cart only (items load lazily) so concurrent checkouts of one cart serialize.
+     */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Cart c where c.userId = :userId")
     Optional<Cart> findByUserIdForUpdate(@Param("userId") Long userId);

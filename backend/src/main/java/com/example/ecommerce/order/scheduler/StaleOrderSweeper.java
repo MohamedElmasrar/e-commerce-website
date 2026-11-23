@@ -16,13 +16,15 @@ public class StaleOrderSweeper {
     private final OrderService orderService;
     private final Duration pendingTimeout;
 
-    public StaleOrderSweeper(OrderService orderService,
-                             @Value("${app.orders.pending-timeout:60m}") Duration pendingTimeout) {
+    public StaleOrderSweeper(
+            OrderService orderService,
+            @Value("${app.orders.pending-timeout:60m}") Duration pendingTimeout) {
         this.orderService = orderService;
         this.pendingTimeout = pendingTimeout;
     }
 
-    @Scheduled(fixedDelayString = "${app.orders.sweep-interval-ms:300000}",
+    @Scheduled(
+            fixedDelayString = "${app.orders.sweep-interval-ms:300000}",
             initialDelayString = "${app.orders.sweep-interval-ms:300000}")
     public void sweep() {
         sweep(Instant.now());

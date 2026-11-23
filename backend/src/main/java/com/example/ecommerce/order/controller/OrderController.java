@@ -26,26 +26,30 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<OrderResponse> checkout(@AuthenticationPrincipal AuthenticatedUser user,
-                                                  @Valid @RequestBody CheckoutRequest request) {
+    public ResponseEntity<OrderResponse> checkout(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @Valid @RequestBody CheckoutRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(orderService.checkout(user.id(), request.shippingAddress()));
     }
 
     @GetMapping
-    public PageResponse<OrderResponse> list(@AuthenticationPrincipal AuthenticatedUser user,
-                                            @RequestParam(defaultValue = "0") int page,
-                                            @RequestParam(defaultValue = "10") int size) {
+    public PageResponse<OrderResponse> list(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         return orderService.listForUser(user.id(), page, size);
     }
 
     @GetMapping("/{id}")
-    public OrderResponse get(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long id) {
+    public OrderResponse get(
+            @AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long id) {
         return orderService.getForUser(user.id(), id);
     }
 
     @PostMapping("/{id}/cancel")
-    public OrderResponse cancel(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long id) {
+    public OrderResponse cancel(
+            @AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long id) {
         return orderService.cancelOwn(user.id(), id);
     }
 }

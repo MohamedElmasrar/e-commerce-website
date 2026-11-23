@@ -44,8 +44,11 @@ public class AdminProductController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) Boolean inStock) {
-        return productService.searchForAdmin(new ProductFilter(q, categoryId, null, minPrice, maxPrice, inStock, true),
-                page, size, sort);
+        return productService.searchForAdmin(
+                new ProductFilter(q, categoryId, null, minPrice, maxPrice, inStock, true),
+                page,
+                size,
+                sort);
     }
 
     @GetMapping("/{id}")
@@ -59,7 +62,8 @@ public class AdminProductController {
     }
 
     @PutMapping("/{id}")
-    public AdminProductResponse update(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
+    public AdminProductResponse update(
+            @PathVariable Long id, @Valid @RequestBody ProductRequest request) {
         return productService.update(id, request);
     }
 
@@ -70,8 +74,8 @@ public class AdminProductController {
     }
 
     @PostMapping(path = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<AdminProductResponse> addImage(@PathVariable Long id,
-                                                         @RequestPart("file") MultipartFile file) {
+    public ResponseEntity<AdminProductResponse> addImage(
+            @PathVariable Long id, @RequestPart("file") MultipartFile file) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.addImage(id, file));
     }
 
@@ -81,7 +85,8 @@ public class AdminProductController {
     }
 
     @PutMapping("/{id}/images/order")
-    public AdminProductResponse reorderImages(@PathVariable Long id, @Valid @RequestBody ReorderImagesRequest request) {
+    public AdminProductResponse reorderImages(
+            @PathVariable Long id, @Valid @RequestBody ReorderImagesRequest request) {
         return productService.reorderImages(id, request.imageIds());
     }
 }

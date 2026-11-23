@@ -38,7 +38,10 @@ public class InventoryService {
         record(productId, quantity, StockReason.INITIAL, null);
     }
 
-    /** Reserves stock for an order. Throws {@link InsufficientStockException} if not enough is available. */
+    /**
+     * Reserves stock for an order. Throws {@link InsufficientStockException} if not enough is
+     * available.
+     */
     @Transactional
     public void reserve(Long productId, int quantity, String reference) {
         requirePositive(quantity);
@@ -75,7 +78,10 @@ public class InventoryService {
 
     @Transactional(readOnly = true)
     public int quantityOnHand(Long productId) {
-        return inventoryRepository.findByProductId(productId).map(Inventory::getQuantityOnHand).orElse(0);
+        return inventoryRepository
+                .findByProductId(productId)
+                .map(Inventory::getQuantityOnHand)
+                .orElse(0);
     }
 
     /** Batch lookup, one query for any number of products. Missing rows are reported as 0. */
@@ -85,7 +91,8 @@ public class InventoryService {
         if (productIds.isEmpty()) {
             return result;
         }
-        inventoryRepository.findQuantities(productIds)
+        inventoryRepository
+                .findQuantities(productIds)
                 .forEach(q -> result.put(q.getProductId(), q.getQuantityOnHand()));
         productIds.forEach(id -> result.putIfAbsent(id, 0));
         return result;

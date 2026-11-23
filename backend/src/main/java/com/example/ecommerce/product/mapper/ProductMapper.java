@@ -7,6 +7,7 @@ import com.example.ecommerce.product.dto.ProductResponse.CategorySummary;
 import com.example.ecommerce.product.dto.ProductResponse.ImageResponse;
 import com.example.ecommerce.product.model.Product;
 import com.example.ecommerce.product.model.ProductImage;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -16,15 +17,31 @@ public class ProductMapper {
     public static final String IMAGE_URL_PREFIX = "/api/v1/products/images/";
 
     public ProductResponse toResponse(Product p, int stock) {
-        List<ImageResponse> images = p.getImages().stream()
-                .sorted(java.util.Comparator.comparingInt(ProductImage::getPosition))
-                .map(i -> new ImageResponse(i.getId(), IMAGE_URL_PREFIX + i.getObjectKey(), i.getPosition()))
-                .toList();
-        return new ProductResponse(p.getId(), p.getSku(), p.getSlug(), p.getName(), p.getDescription(),
-                p.getPrice(), p.getCurrency(),
+        List<ImageResponse> images =
+                p.getImages().stream()
+                        .sorted(Comparator.comparingInt(ProductImage::getPosition))
+                        .map(i ->
+                                new ImageResponse(
+                                        i.getId(),
+                                        IMAGE_URL_PREFIX + i.getObjectKey(),
+                                        i.getPosition()))
+                        .toList();
+        return new ProductResponse(
+                p.getId(),
+                p.getSku(),
+                p.getSlug(),
+                p.getName(),
+                p.getDescription(),
+                p.getPrice(),
+                p.getCurrency(),
                 p.isActive(),
-                new CategorySummary(p.getCategory().getId(), p.getCategory().getName(), p.getCategory().getSlug()),
-                images, stock > 0, p.getCreatedAt());
+                new CategorySummary(
+                        p.getCategory().getId(),
+                        p.getCategory().getName(),
+                        p.getCategory().getSlug()),
+                images,
+                stock > 0,
+                p.getCreatedAt());
     }
 
     public AdminProductResponse toAdminResponse(Product p, int stock) {

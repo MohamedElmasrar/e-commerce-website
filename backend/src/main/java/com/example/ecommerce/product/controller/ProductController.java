@@ -12,6 +12,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.ResponseEntity.BodyBuilder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,8 +37,11 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) Boolean inStock) {
-        return productService.search(new ProductFilter(q, categoryId, category, minPrice, maxPrice, inStock, false),
-                page, size, sort);
+        return productService.search(
+                new ProductFilter(q, categoryId, category, minPrice, maxPrice, inStock, false),
+                page,
+                size,
+                sort);
     }
 
     @GetMapping("/{slug}")
@@ -45,13 +49,18 @@ public class ProductController {
         return productService.getBySlug(slug);
     }
 
-    /** Image bytes streamed from the object store. Keys are random UUIDs, so responses are cacheable forever. */
+    /**
+     * Image bytes streamed from the object store. Keys are random UUIDs, so responses are cacheable
+     * forever.
+     */
     @GetMapping("/images/{key}")
     public ResponseEntity<InputStreamResource> image(@PathVariable String key) {
         StoredObject object = productService.openImage(key);
-        ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable())
-                .contentType(MediaType.parseMediaType(object.contentType()));
+        BodyBuilder builder =
+                ResponseEntity.ok()
+                        .cacheControl(
+                                CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable())
+                        .contentType(MediaType.parseMediaType(object.contentType()));
         if (object.size() >= 0) {
             builder.contentLength(object.size());
         }

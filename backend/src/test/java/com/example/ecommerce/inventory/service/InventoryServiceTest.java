@@ -47,13 +47,15 @@ class InventoryServiceTest {
     void reserveFailsWhenConditionalUpdateAffectsNoRows() {
         when(inventoryRepository.applyDelta(7L, -50)).thenReturn(0);
 
-        assertThatThrownBy(() -> service.reserve(7L, 50, "order:1")).isInstanceOf(InsufficientStockException.class);
+        assertThatThrownBy(() -> service.reserve(7L, 50, "order:1"))
+                .isInstanceOf(InsufficientStockException.class);
         verify(movementRepository, never()).save(any());
     }
 
     @Test
     void reserveRejectsNonPositiveQuantity() {
-        assertThatThrownBy(() -> service.reserve(7L, 0, "x")).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.reserve(7L, 0, "x"))
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -67,7 +69,8 @@ class InventoryServiceTest {
     void negativeAdjustmentBelowZeroIsRejected() {
         when(inventoryRepository.applyDelta(7L, -10)).thenReturn(0);
         when(inventoryRepository.findByProductId(7L)).thenReturn(Optional.of(new Inventory()));
-        assertThatThrownBy(() -> service.adjust(7L, -10, "n")).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.adjust(7L, -10, "n"))
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test

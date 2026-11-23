@@ -30,15 +30,18 @@ public class UserController {
     }
 
     @PutMapping
-    public UserResponse update(@AuthenticationPrincipal AuthenticatedUser principal,
-                               @Valid @RequestBody UpdateProfileRequest request) {
+    public UserResponse update(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody UpdateProfileRequest request) {
         return userMapper.toResponse(userService.updateProfile(principal.id(), request.fullName()));
     }
 
     @PutMapping("/password")
-    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal AuthenticatedUser principal,
-                                               @Valid @RequestBody ChangePasswordRequest request) {
-        userService.changePassword(principal.id(), request.currentPassword(), request.newPassword());
+    public ResponseEntity<Void> changePassword(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(
+                principal.id(), request.currentPassword(), request.newPassword());
         return ResponseEntity.noContent().build();
     }
 }

@@ -9,5 +9,4 @@ public record S3Properties(
         String bucket,
         String accessKey,
         String secretKey,
-        boolean pathStyle) {
-}
+        boolean pathStyle) {}

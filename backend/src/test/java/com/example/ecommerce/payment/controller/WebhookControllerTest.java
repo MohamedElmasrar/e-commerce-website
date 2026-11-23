@@ -37,12 +37,20 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** Posts real HMAC-signed payloads (test secret whsec_dummy) through the real gateway and service. */
+/**
+ * Posts real HMAC-signed payloads (test secret whsec_dummy) through the real gateway and service.
+ */
 @WebMvcTest(PaymentController.class)
 @ActiveProfiles("test")
 @EnableConfigurationProperties({JwtProperties.class, CorsProperties.class, StripeProperties.class})
-@Import({SecurityConfig.class, JwtService.class, GlobalExceptionHandler.class, RequestIdFilter.class,
-        PaymentService.class, StripePaymentGateway.class})
+@Import({
+    SecurityConfig.class,
+    JwtService.class,
+    GlobalExceptionHandler.class,
+    RequestIdFilter.class,
+    PaymentService.class,
+    StripePaymentGateway.class
+})
 class WebhookControllerTest {
 
     private static final String SECRET = "whsec_dummy";
@@ -54,17 +62,23 @@ class WebhookControllerTest {
 
     private static String payload(String eventId) {
         return """
-                {"id":"%s","object":"event","api_version":"2020-01-01","created":1700000000,
-                 "type":"checkout.session.completed",
-                 "data":{"object":{"id":"cs_test_1","object":"checkout.session","payment_intent":"pi_1",
-                 "metadata":{"orderId":"42"}}}}
-                """.formatted(eventId);
+        {"id":"%s","object":"event","api_version":"2020-01-01","created":1700000000,
+         "type":"checkout.session.completed",
+         "data":{"object":{"id":"cs_test_1","object":"checkout.session","payment_intent":"pi_1",
+         "metadata":{"orderId":"42"}}}}
+        """
+                .formatted(eventId);
     }
 
     private static String sign(String payload, String secret, long timestamp) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-        String hex = HexFormat.of().formatHex(mac.doFinal((timestamp + "." + payload).getBytes(StandardCharsets.UTF_8)));
+        String hex =
+                HexFormat.of()
+                        .formatHex(
+                                mac.doFinal(
+                                        (timestamp + "." + payload)
+                                                .getBytes(StandardCharsets.UTF_8)));
         return "t=" + timestamp + ",v1=" + hex;
     }
 
@@ -83,11 +97,15 @@ class WebhookControllerTest {
     void validSignatureMarksOrderPaid() throws Exception {
         String body = payload("evt_ok");
         when(processedEvents.insertIfAbsent("evt_ok", "checkout.session.completed")).thenReturn(1);
-        when(paymentRepository.findByStripeSessionId("cs_test_1")).thenReturn(Optional.of(createdPayment()));
+        when(paymentRepository.findByStripeSessionId("cs_test_1"))
+                .thenReturn(Optional.of(createdPayment()));
         when(orderService.markPaid(42L)).thenReturn(true);
 
-        mvc.perform(post("/api/v1/payments/webhook").contentType(MediaType.APPLICATION_JSON).content(body)
-                        .header("Stripe-Signature", sign(body, SECRET, now())))
+        mvc.perform(
+                        post("/api/v1/payments/webhook")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                                .header("Stripe-Signature", sign(body, SECRET, now())))
                 .andExpect(status().isOk());
 
         verify(orderService).markPaid(42L);
@@ -96,8 +114,11 @@ class WebhookControllerTest {
     @Test
     void wrongSignatureIs400AndNothingIsProcessed() throws Exception {
         String body = payload("evt_bad");
-        mvc.perform(post("/api/v1/payments/webhook").contentType(MediaType.APPLICATION_JSON).content(body)
-                        .header("Stripe-Signature", sign(body, "whsec_other", now())))
+        mvc.perform(
+                        post("/api/v1/payments/webhook")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body)
+                                .header("Stripe-Signature", sign(body, "whsec_other", now())))
                 .andExpect(status().isBadRequest());
         verify(processedEvents, never()).insertIfAbsent(anyString(), anyString());
         verify(orderService, never()).markPaid(42L);
@@ -107,28 +128,39 @@ class WebhookControllerTest {
     void tamperedPayloadIs400() throws Exception {
         String body = payload("evt_t");
         String sig = sign(body, SECRET, now());
-        mvc.perform(post("/api/v1/payments/webhook").contentType(MediaType.APPLICATION_JSON)
-                        .content(body.replace("42", "43")).header("Stripe-Signature", sig))
+        mvc.perform(
+                        post("/api/v1/payments/webhook")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body.replace("42", "43"))
+                                .header("Stripe-Signature", sig))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void missingSignatureHeaderIs400() throws Exception {
-        mvc.perform(post("/api/v1/payments/webhook").contentType(MediaType.APPLICATION_JSON).content(payload("e")))
+        mvc.perform(
+                        post("/api/v1/payments/webhook")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload("e")))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void replayedEventIdIsProcessedOnce() throws Exception {
         String body = payload("evt_replay");
-        when(processedEvents.insertIfAbsent("evt_replay", "checkout.session.completed")).thenReturn(1, 0);
-        when(paymentRepository.findByStripeSessionId("cs_test_1")).thenReturn(Optional.of(createdPayment()));
+        when(processedEvents.insertIfAbsent("evt_replay", "checkout.session.completed"))
+                .thenReturn(1, 0);
+        when(paymentRepository.findByStripeSessionId("cs_test_1"))
+                .thenReturn(Optional.of(createdPayment()));
         when(orderService.markPaid(42L)).thenReturn(true);
         String sig = sign(body, SECRET, now());
 
         for (int i = 0; i < 2; i++) {
-            mvc.perform(post("/api/v1/payments/webhook").contentType(MediaType.APPLICATION_JSON).content(body)
-                            .header("Stripe-Signature", sig))
+            mvc.perform(
+                            post("/api/v1/payments/webhook")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(body)
+                                    .header("Stripe-Signature", sig))
                     .andExpect(status().isOk());
         }
 

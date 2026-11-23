@@ -27,9 +27,11 @@ public class StorageConfig {
         return S3Client.builder()
                 .endpointOverride(URI.create(props.endpoint()))
                 .region(Region.of(props.region()))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(props.accessKey(), props.secretKey())))
-                .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(props.pathStyle()).build())
+                .credentialsProvider(
+                        StaticCredentialsProvider.create(
+                                AwsBasicCredentials.create(props.accessKey(), props.secretKey())))
+                .serviceConfiguration(
+                        S3Configuration.builder().pathStyleAccessEnabled(props.pathStyle()).build())
                 .build();
     }
 

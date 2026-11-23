@@ -15,11 +15,18 @@ class JwtServiceTest {
     private static final String SECRET = "unit-test-secret-unit-test-secret-1234567890";
 
     private JwtService service(String secret, Duration ttl) {
-        return new JwtService(new JwtProperties(secret, "ecommerce", ttl, Duration.ofDays(7), false));
+        return new JwtService(
+                new JwtProperties(secret, "ecommerce", ttl, Duration.ofDays(7), false));
     }
 
     private User user() {
-        User u = User.builder().email("a@b.com").passwordHash("x").fullName("A").role(Role.ADMIN).build();
+        User u =
+                User.builder()
+                        .email("a@b.com")
+                        .passwordHash("x")
+                        .fullName("A")
+                        .role(Role.ADMIN)
+                        .build();
         u.setId(42L);
         return u;
     }
@@ -39,8 +46,9 @@ class JwtServiceTest {
 
     @Test
     void rejectsTokenSignedWithOtherKey() {
-        String token = service("another-secret-another-secret-1234567890", Duration.ofMinutes(5))
-                .generateAccessToken(user());
+        String token =
+                service("another-secret-another-secret-1234567890", Duration.ofMinutes(5))
+                        .generateAccessToken(user());
         assertThat(service(SECRET, Duration.ofMinutes(5)).parse(token)).isEmpty();
     }
 

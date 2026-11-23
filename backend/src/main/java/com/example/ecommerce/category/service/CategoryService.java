@@ -39,7 +39,9 @@ public class CategoryService {
 
     @Transactional(readOnly = true)
     public List<CategoryResponse> flat() {
-        return repository.findAllWithProductCount().stream().map(p -> mapper.toResponse(p, List.of())).toList();
+        return repository.findAllWithProductCount().stream()
+                .map(p -> mapper.toResponse(p, List.of()))
+                .toList();
     }
 
     @Transactional
@@ -77,11 +79,17 @@ public class CategoryService {
     }
 
     public Category find(Long id) {
-        return repository.findById(id).orElseThrow(() -> new NotFoundException("Category not found: " + id));
+        return repository
+                .findById(id)
+                .orElseThrow(() -> new NotFoundException("Category not found: " + id));
     }
 
     private long countProducts(Long categoryId) {
-        Long n = jdbc.queryForObject("select count(*) from products where category_id = ?", Long.class, categoryId);
+        Long n =
+                jdbc.queryForObject(
+                        "select count(*) from products where category_id = ?",
+                        Long.class,
+                        categoryId);
         return n == null ? 0 : n;
     }
 
@@ -95,7 +103,8 @@ public class CategoryService {
         find(parentId);
     }
 
-    private List<CategoryResponse> build(Long parentId, Map<Long, List<CategoryProjection>> byParent) {
+    private List<CategoryResponse> build(
+            Long parentId, Map<Long, List<CategoryProjection>> byParent) {
         return byParent.getOrDefault(parentId, List.of()).stream()
                 .map(p -> mapper.toResponse(p, build(p.getId(), byParent)))
                 .toList();

@@ -54,7 +54,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@CookieValue(name = COOKIE_NAME, required = false) String refreshToken) {
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = COOKIE_NAME, required = false) String refreshToken) {
         authService.logout(refreshToken);
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, cookie("", 0).toString())
@@ -68,8 +69,10 @@ public class AuthController {
 
     private ResponseEntity<AuthResponse> withCookie(HttpStatus status, AuthResult result) {
         return ResponseEntity.status(status)
-                .header(HttpHeaders.SET_COOKIE,
-                        cookie(result.refreshToken(), jwtProperties.refreshTokenTtl().toSeconds()).toString())
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        cookie(result.refreshToken(), jwtProperties.refreshTokenTtl().toSeconds())
+                                .toString())
                 .body(result.response());
     }
 

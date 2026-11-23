@@ -77,11 +77,15 @@ public class CartService {
         return toResponse(cart);
     }
 
-    /** Loads and row-locks the user's cart (with items and products) for checkout. Must run inside the caller's transaction. */
+    /**
+     * Loads and row-locks the user's cart (with items and products) for checkout. Must run inside
+     * the caller's transaction.
+     */
     @Transactional
     public Cart loadForCheckout(Long userId) {
         // Lock first: the items are read only after the lock is granted, so a request that waited
-        // loads the cart as the winning checkout left it (cleared). Held until the transaction ends.
+        // loads the cart as the winning checkout left it (cleared). Held until the transaction
+        // ends.
         cartRepository.findByUserIdForUpdate(userId).orElseGet(() -> getOrCreate(userId));
         return getOrCreate(userId);
     }
@@ -93,11 +97,13 @@ public class CartService {
     }
 
     private Cart getOrCreate(Long userId) {
-        return cartRepository.findByUserId(userId).orElseGet(() -> {
-            Cart c = new Cart();
-            c.setUserId(userId);
-            return cartRepository.saveAndFlush(c);
-        });
+        return cartRepository
+                .findByUserId(userId)
+                .orElseGet(() -> {
+                    Cart c = new Cart();
+                    c.setUserId(userId);
+                    return cartRepository.saveAndFlush(c);
+                });
     }
 
     private Product activeProduct(Long productId) {
@@ -115,13 +121,16 @@ public class CartService {
     }
 
     private CartItem findItem(Cart cart, Long productId) {
-        return cart.getItems().stream().filter(i -> i.getProduct().getId().equals(productId)).findFirst()
+        return cart.getItems().stream()
+                .filter(i -> i.getProduct().getId().equals(productId))
+                .findFirst()
                 .orElse(null);
     }
 
     private CartResponse toResponse(Cart cart) {
-        Map<Long, Integer> stock = inventoryService.quantities(
-                cart.getItems().stream().map(i -> i.getProduct().getId()).toList());
+        Map<Long, Integer> stock =
+                inventoryService.quantities(
+                        cart.getItems().stream().map(i -> i.getProduct().getId()).toList());
         return mapper.toResponse(cart, stock);
     }
 }

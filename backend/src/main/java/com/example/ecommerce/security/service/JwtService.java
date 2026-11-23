@@ -53,16 +53,18 @@ public class JwtService {
     /** Returns the principal for a valid, unexpired token, or empty if the token is invalid. */
     public Optional<AuthenticatedUser> parse(String token) {
         try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(key)
-                    .requireIssuer(properties.issuer())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-            return Optional.of(new AuthenticatedUser(
-                    Long.valueOf(claims.getSubject()),
-                    claims.get(CLAIM_EMAIL, String.class),
-                    Role.valueOf(claims.get(CLAIM_ROLE, String.class))));
+            Claims claims =
+                    Jwts.parser()
+                            .verifyWith(key)
+                            .requireIssuer(properties.issuer())
+                            .build()
+                            .parseSignedClaims(token)
+                            .getPayload();
+            return Optional.of(
+                    new AuthenticatedUser(
+                            Long.valueOf(claims.getSubject()),
+                            claims.get(CLAIM_EMAIL, String.class),
+                            Role.valueOf(claims.get(CLAIM_ROLE, String.class))));
         } catch (JwtException | IllegalArgumentException ex) {
             return Optional.empty();
         }

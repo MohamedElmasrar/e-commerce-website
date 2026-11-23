@@ -20,7 +20,9 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public User getById(Long id) {
-        return userRepository.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
+        return userRepository
+                .findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     @Transactional

@@ -23,8 +23,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Page<Order> findAllByStatus(@Param("status") OrderStatus status, Pageable pageable);
 
     @Query("select o.id from Order o where o.status = :status and o.createdAt < :cutoff")
-    List<Long> findIdsByStatusAndCreatedAtBefore(@Param("status") OrderStatus status,
-                                                 @Param("cutoff") Instant cutoff);
+    List<Long> findIdsByStatusAndCreatedAtBefore(
+            @Param("status") OrderStatus status, @Param("cutoff") Instant cutoff);
 
     /** Row lock so concurrent webhook and admin status changes serialize. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

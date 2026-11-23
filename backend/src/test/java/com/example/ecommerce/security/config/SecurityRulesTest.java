@@ -27,7 +27,13 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(UserController.class)
 @ActiveProfiles("test")
 @EnableConfigurationProperties({JwtProperties.class, CorsProperties.class})
-@Import({SecurityConfig.class, JwtService.class, GlobalExceptionHandler.class, RequestIdFilter.class, UserMapper.class})
+@Import({
+    SecurityConfig.class,
+    JwtService.class,
+    GlobalExceptionHandler.class,
+    RequestIdFilter.class,
+    UserMapper.class
+})
 class SecurityRulesTest {
 
     @Autowired MockMvc mvc;
@@ -35,7 +41,13 @@ class SecurityRulesTest {
     @MockBean UserService userService;
 
     private String token(Role role) {
-        User u = User.builder().email("x@example.com").passwordHash("h").fullName("X").role(role).build();
+        User u =
+                User.builder()
+                        .email("x@example.com")
+                        .passwordHash("h")
+                        .fullName("X")
+                        .role(role)
+                        .build();
         u.setId(1L);
         return "Bearer " + jwtService.generateAccessToken(u);
     }

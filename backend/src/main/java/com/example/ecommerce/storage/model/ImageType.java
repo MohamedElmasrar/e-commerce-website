@@ -29,6 +29,8 @@ public enum ImageType {
         if (contentType == null) {
             return Optional.empty();
         }
-        return Arrays.stream(values()).filter(t -> t.contentType.equalsIgnoreCase(contentType.trim())).findFirst();
+        return Arrays.stream(values())
+                .filter(t -> t.contentType.equalsIgnoreCase(contentType.trim()))
+                .findFirst();
     }
 }

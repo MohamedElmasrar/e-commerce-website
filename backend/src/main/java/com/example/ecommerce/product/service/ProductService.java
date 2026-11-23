@@ -22,6 +22,7 @@ import com.example.ecommerce.storage.validation.FileValidator;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.text.Normalizer;
+import java.text.Normalizer.Form;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -36,6 +37,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,7 +49,9 @@ public class ProductService {
 
     public static final int MAX_PAGE_SIZE = 100;
     private static final Set<String> SORTABLE = Set.of("price", "name", "createdAt");
-    private static final Pattern IMAGE_KEY = Pattern.compile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png|webp)$");
+    private static final Pattern IMAGE_KEY =
+            Pattern.compile(
+                    "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|png|webp)$");
 
     private final ProductRepository productRepository;
     private final ProductMapper mapper;
@@ -56,19 +60,22 @@ public class ProductService {
     private final StorageService storageService;
     private final FileValidator fileValidator;
 
-    /** Builds the page request: size capped at 100, sort limited to a whitelist ("field,asc|desc"). */
+    /**
+     * Builds the page request: size capped at 100, sort limited to a whitelist ("field,asc|desc").
+     */
     public static Pageable pageable(int page, int size, String sort) {
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         String[] parts = (sort == null || sort.isBlank() ? "createdAt,desc" : sort).split(",");
         String field = parts[0].trim();
         if (!SORTABLE.contains(field)) {
-            throw new BadRequestException("Unsupported sort field. Allowed: price, name, createdAt");
+            throw new BadRequestException(
+                    "Unsupported sort field. Allowed: price, name, createdAt");
         }
-        Sort.Direction dir = Sort.Direction.ASC;
+        Direction dir = Direction.ASC;
         if (parts.length > 1) {
             String d = parts[1].trim().toLowerCase(Locale.ROOT);
             if (d.equals("desc")) {
-                dir = Sort.Direction.DESC;
+                dir = Direction.DESC;
             } else if (!d.equals("asc")) {
                 throw new BadRequestException("Sort direction must be asc or desc");
             }
@@ -77,28 +84,39 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ProductResponse> search(ProductFilter filter, int page, int size, String sort) {
+    public PageResponse<ProductResponse> search(
+            ProductFilter filter, int page, int size, String sort) {
         return search(filter, page, size, sort, mapper::toResponse);
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<AdminProductResponse> searchForAdmin(ProductFilter filter, int page, int size, String sort) {
+    public PageResponse<AdminProductResponse> searchForAdmin(
+            ProductFilter filter, int page, int size, String sort) {
         return search(filter, page, size, sort, mapper::toAdminResponse);
     }
 
-    private <T> PageResponse<T> search(ProductFilter filter, int page, int size, String sort,
-                                       BiFunction<Product, Integer, T> toResponse) {
-        Page<Product> result = productRepository.findAll(ProductSpecifications.from(filter),
-                pageable(page, size, sort));
-        Map<Long, Integer> stock = inventoryService.quantities(
-                result.getContent().stream().map(Product::getId).toList());
+    private <T> PageResponse<T> search(
+            ProductFilter filter,
+            int page,
+            int size,
+            String sort,
+            BiFunction<Product, Integer, T> toResponse) {
+        Page<Product> result =
+                productRepository.findAll(
+                        ProductSpecifications.from(filter), pageable(page, size, sort));
+        Map<Long, Integer> stock =
+                inventoryService.quantities(
+                        result.getContent().stream().map(Product::getId).toList());
         return PageResponse.of(result, p -> toResponse.apply(p, stock.getOrDefault(p.getId(), 0)));
     }
 
     @Transactional(readOnly = true)
     public ProductResponse getBySlug(String slug) {
-        Product p = productRepository.findBySlug(slug).filter(Product::isActive)
-                .orElseThrow(() -> new NotFoundException("Product not found: " + slug));
+        Product p =
+                productRepository
+                        .findBySlug(slug)
+                        .filter(Product::isActive)
+                        .orElseThrow(() -> new NotFoundException("Product not found: " + slug));
         return mapper.toResponse(p, inventoryService.quantityOnHand(p.getId()));
     }
 
@@ -169,7 +187,9 @@ public class ProductService {
             img.setObjectKey(key);
             img.setContentType(type.contentType());
             img.setSizeBytes(bytes.length);
-            img.setPosition(p.getImages().stream().mapToInt(ProductImage::getPosition).max().orElse(-1) + 1);
+            img.setPosition(
+                    p.getImages().stream().mapToInt(ProductImage::getPosition).max().orElse(-1)
+                            + 1);
             p.getImages().add(img);
             productRepository.saveAndFlush(p);
         } catch (RuntimeException e) {
@@ -182,8 +202,11 @@ public class ProductService {
     @Transactional
     public AdminProductResponse deleteImage(Long productId, Long imageId) {
         Product p = find(productId);
-        ProductImage img = p.getImages().stream().filter(i -> i.getId().equals(imageId)).findFirst()
-                .orElseThrow(() -> new NotFoundException("Image not found: " + imageId));
+        ProductImage img =
+                p.getImages().stream()
+                        .filter(i -> i.getId().equals(imageId))
+                        .findFirst()
+                        .orElseThrow(() -> new NotFoundException("Image not found: " + imageId));
         p.getImages().remove(img);
         productRepository.saveAndFlush(p);
         deleteObjectQuietly(img.getObjectKey());
@@ -214,7 +237,8 @@ public class ProductService {
     }
 
     public Product find(Long id) {
-        return productRepository.findWithCategoryById(id)
+        return productRepository
+                .findWithCategoryById(id)
                 .orElseThrow(() -> new NotFoundException("Product not found: " + id));
     }
 
@@ -231,8 +255,12 @@ public class ProductService {
     }
 
     static String slugify(String name) {
-        String s = Normalizer.normalize(name, Normalizer.Form.NFD).replaceAll("\\p{M}", "")
-                .toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", "");
+        String s =
+                Normalizer.normalize(name, Form.NFD)
+                        .replaceAll("\\p{M}", "")
+                        .toLowerCase(Locale.ROOT)
+                        .replaceAll("[^a-z0-9]+", "-")
+                        .replaceAll("(^-|-$)", "");
         return s.isEmpty() ? UUID.randomUUID().toString() : s;
     }
 }

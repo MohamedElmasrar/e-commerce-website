@@ -25,9 +25,10 @@ public class AdminOrderController {
     private final OrderService orderService;
 
     @GetMapping
-    public PageResponse<OrderResponse> list(@RequestParam(required = false) OrderStatus status,
-                                            @RequestParam(defaultValue = "0") int page,
-                                            @RequestParam(defaultValue = "20") int size) {
+    public PageResponse<OrderResponse> list(
+            @RequestParam(required = false) OrderStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         return orderService.listAll(status, page, size);
     }
 
@@ -37,7 +38,8 @@ public class AdminOrderController {
     }
 
     @PatchMapping("/{id}/status")
-    public OrderResponse updateStatus(@PathVariable Long id, @Valid @RequestBody UpdateStatusRequest request) {
+    public OrderResponse updateStatus(
+            @PathVariable Long id, @Valid @RequestBody UpdateStatusRequest request) {
         return orderService.updateStatus(id, request.status());
     }
 }

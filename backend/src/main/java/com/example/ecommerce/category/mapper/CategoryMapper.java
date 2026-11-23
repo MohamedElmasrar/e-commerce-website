@@ -11,13 +11,25 @@ import org.springframework.stereotype.Component;
 public class CategoryMapper {
 
     public CategoryResponse toResponse(CategoryProjection p, List<CategoryResponse> children) {
-        return new CategoryResponse(p.getId(), p.getName(), p.getSlug(), p.getDescription(), p.getParentId(),
-                p.getProductCount() == null ? 0 : p.getProductCount(), children);
+        return new CategoryResponse(
+                p.getId(),
+                p.getName(),
+                p.getSlug(),
+                p.getDescription(),
+                p.getParentId(),
+                p.getProductCount() == null ? 0 : p.getProductCount(),
+                children);
     }
 
     public CategoryResponse toResponse(Category c, long productCount) {
-        return new CategoryResponse(c.getId(), c.getName(), c.getSlug(), c.getDescription(), c.getParentId(),
-                productCount, List.of());
+        return new CategoryResponse(
+                c.getId(),
+                c.getName(),
+                c.getSlug(),
+                c.getDescription(),
+                c.getParentId(),
+                productCount,
+                List.of());
     }
 
     public void apply(CategoryRequest request, Category c) {

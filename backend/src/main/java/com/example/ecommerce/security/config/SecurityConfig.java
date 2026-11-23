@@ -6,6 +6,7 @@ import com.example.ecommerce.security.filter.JwtAuthenticationFilter;
 import com.example.ecommerce.security.service.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -37,26 +38,48 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
+        http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/v1/auth/me").authenticated()
-                        .requestMatchers("/api/v1/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/products/**", "/api/v1/categories/**").permitAll()
-                        .requestMatchers("/api/v1/payments/webhook").permitAll()
-                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated())
-                .exceptionHandling(e -> e
-                        .authenticationEntryPoint((req, res, ex) -> writeError(res, HttpStatus.UNAUTHORIZED,
-                                "Authentication required", req.getRequestURI()))
-                        .accessDeniedHandler((req, res, ex) -> writeError(res, HttpStatus.FORBIDDEN,
-                                "Access denied", req.getRequestURI())))
-                .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+                .authorizeHttpRequests(auth ->
+                        auth.requestMatchers(HttpMethod.OPTIONS, "/**")
+                                .permitAll()
+                                .requestMatchers("/api/v1/auth/me")
+                                .authenticated()
+                                .requestMatchers("/api/v1/auth/**")
+                                .permitAll()
+                                .requestMatchers(
+                                        HttpMethod.GET,
+                                        "/api/v1/products/**",
+                                        "/api/v1/categories/**")
+                                .permitAll()
+                                .requestMatchers("/api/v1/payments/webhook")
+                                .permitAll()
+                                .requestMatchers(
+                                        "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**")
+                                .permitAll()
+                                .requestMatchers("/actuator/health", "/actuator/health/**")
+                                .permitAll()
+                                .requestMatchers("/api/v1/admin/**")
+                                .hasRole("ADMIN")
+                                .anyRequest()
+                                .authenticated())
+                .exceptionHandling(e ->
+                        e.authenticationEntryPoint((req, res, ex) ->
+                                        writeError(
+                                                res,
+                                                HttpStatus.UNAUTHORIZED,
+                                                "Authentication required",
+                                                req.getRequestURI()))
+                                .accessDeniedHandler((req, res, ex) ->
+                                        writeError(
+                                                res,
+                                                HttpStatus.FORBIDDEN,
+                                                "Access denied",
+                                                req.getRequestURI())))
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(jwtService),
+                        UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -79,7 +102,7 @@ public class SecurityConfig {
     }
 
     private void writeError(HttpServletResponse res, HttpStatus status, String message, String path)
-            throws java.io.IOException {
+            throws IOException {
         res.setStatus(status.value());
         res.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(res.getOutputStream(), ApiErrors.of(status, message, path));

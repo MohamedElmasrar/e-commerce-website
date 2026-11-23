@@ -30,27 +30,30 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/checkout-session/{orderId}")
-    public CheckoutSessionResponse createCheckoutSession(@AuthenticationPrincipal AuthenticatedUser user,
-                                                         @PathVariable Long orderId) {
+    public CheckoutSessionResponse createCheckoutSession(
+            @AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long orderId) {
         return paymentService.createCheckoutSession(user.id(), orderId);
     }
 
     @ExceptionHandler(CheckoutUnavailableException.class)
-    public ResponseEntity<ApiError> checkoutUnavailable(CheckoutUnavailableException error, HttpServletRequest request) {
+    public ResponseEntity<ApiError> checkoutUnavailable(
+            CheckoutUnavailableException error, HttpServletRequest request) {
         HttpStatus status = HttpStatus.SERVICE_UNAVAILABLE;
-        return ResponseEntity.status(status).body(ApiErrors.of(status, error.getMessage(), request.getRequestURI(), null));
+        return ResponseEntity.status(status)
+                .body(ApiErrors.of(status, error.getMessage(), request.getRequestURI(), null));
     }
 
     @GetMapping("/order/{orderId}")
-    public List<PaymentResponse> status(@AuthenticationPrincipal AuthenticatedUser user,
-                                        @PathVariable Long orderId) {
+    public List<PaymentResponse> status(
+            @AuthenticationPrincipal AuthenticatedUser user, @PathVariable Long orderId) {
         return paymentService.statusForOrder(user.id(), orderId);
     }
 
     /** Public endpoint called by Stripe. Authenticity comes from the Stripe-Signature header. */
     @PostMapping("/webhook")
-    public ResponseEntity<Void> webhook(@RequestBody String payload,
-                                        @RequestHeader(value = "Stripe-Signature", required = false) String signature) {
+    public ResponseEntity<Void> webhook(
+            @RequestBody String payload,
+            @RequestHeader(value = "Stripe-Signature", required = false) String signature) {
         paymentService.handleWebhook(payload, signature);
         return ResponseEntity.ok().build();
     }

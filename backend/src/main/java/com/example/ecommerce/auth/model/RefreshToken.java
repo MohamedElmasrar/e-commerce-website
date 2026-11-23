@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,7 +17,7 @@ import lombok.Setter;
 @Setter
 @Builder
 @NoArgsConstructor
-@lombok.AllArgsConstructor
+@AllArgsConstructor
 public class RefreshToken extends BaseEntity {
 
     @Column(name = "user_id", nullable = false)

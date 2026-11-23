@@ -4,7 +4,13 @@ import java.util.EnumSet;
 import java.util.Set;
 
 public enum OrderStatus {
-    PENDING_PAYMENT, PAID, PROCESSING, SHIPPED, DELIVERED, CANCELLED, REFUNDED;
+    PENDING_PAYMENT,
+    PAID,
+    PROCESSING,
+    SHIPPED,
+    DELIVERED,
+    CANCELLED,
+    REFUNDED;
 
     /** Allowed next states. CANCELLED and REFUNDED are terminal. */
     public Set<OrderStatus> allowedNext() {

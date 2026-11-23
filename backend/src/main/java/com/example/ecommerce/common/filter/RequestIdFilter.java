@@ -23,10 +23,14 @@ public class RequestIdFilter extends OncePerRequestFilter {
     private static final Pattern SAFE = Pattern.compile("[A-Za-z0-9._-]{1,64}");
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String incoming = request.getHeader(HEADER);
-        String id = incoming != null && SAFE.matcher(incoming).matches() ? incoming : UUID.randomUUID().toString();
+        String id =
+                incoming != null && SAFE.matcher(incoming).matches()
+                        ? incoming
+                        : UUID.randomUUID().toString();
         MDC.put(MDC_KEY, id);
         response.setHeader(HEADER, id);
         try {

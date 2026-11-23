@@ -38,8 +38,9 @@ class CartServiceTest {
         when(cartRepository.findByUserId(1L)).thenReturn(Optional.of(cart));
         when(cartRepository.findByUserIdForUpdate(1L)).thenReturn(Optional.of(cart));
 
-        Cart loaded = new CartService(cartRepository, productService, inventoryService, mapper)
-                .loadForCheckout(1L);
+        Cart loaded =
+                new CartService(cartRepository, productService, inventoryService, mapper)
+                        .loadForCheckout(1L);
 
         assertThat(loaded).isSameAs(cart);
         InOrder order = inOrder(cartRepository);
@@ -61,7 +62,8 @@ class CartServiceTest {
         when(cartRepository.findByUserId(1L)).thenReturn(Optional.of(cart));
         when(inventoryService.quantities(List.of(10L))).thenReturn(Map.of(10L, 3), Map.of(10L, 2));
 
-        CartService service = new CartService(cartRepository, productService, inventoryService, new CartMapper());
+        CartService service =
+                new CartService(cartRepository, productService, inventoryService, new CartMapper());
         ObjectMapper json = new ObjectMapper();
         JsonNode belowStock = json.valueToTree(service.get(1L).items().getFirst());
         JsonNode atStock = json.valueToTree(service.get(1L).items().getFirst());

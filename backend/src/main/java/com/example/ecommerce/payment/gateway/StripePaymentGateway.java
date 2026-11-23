@@ -3,6 +3,7 @@ package com.example.ecommerce.payment.gateway;
 import com.example.ecommerce.config.properties.StripeProperties;
 import com.example.ecommerce.payment.exception.CheckoutUnavailableException;
 import com.example.ecommerce.payment.exception.InvalidWebhookSignatureException;
+import com.example.ecommerce.payment.gateway.CheckoutSessionRequest.Line;
 import com.stripe.StripeClient;
 import com.stripe.exception.EventDataObjectDeserializationException;
 import com.stripe.exception.SignatureVerificationException;
@@ -15,6 +16,12 @@ import com.stripe.net.RequestOptions;
 import com.stripe.net.Webhook;
 import com.stripe.param.RefundCreateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.stripe.param.checkout.SessionCreateParams.Builder;
+import com.stripe.param.checkout.SessionCreateParams.LineItem;
+import com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData;
+import com.stripe.param.checkout.SessionCreateParams.LineItem.PriceData.ProductData;
+import com.stripe.param.checkout.SessionCreateParams.Mode;
+import com.stripe.param.checkout.SessionCreateParams.PaymentIntentData;
 import java.time.Instant;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -35,33 +42,53 @@ public class StripePaymentGateway implements PaymentGateway {
     @Override
     public CheckoutSession createCheckoutSession(CheckoutSessionRequest request) {
         String orderId = String.valueOf(request.orderId());
-        SessionCreateParams.Builder params = SessionCreateParams.builder()
-                .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(request.successUrl())
-                .setCancelUrl(request.cancelUrl())
-                .setClientReferenceId(orderId)
-                .setExpiresAt(Instant.now().plusSeconds(30 * 60).getEpochSecond())
-                .putMetadata("orderId", orderId)
-                .setPaymentIntentData(SessionCreateParams.PaymentIntentData.builder()
-                        .putMetadata("orderId", orderId).build());
-        for (CheckoutSessionRequest.Line line : request.lines()) {
-            params.addLineItem(SessionCreateParams.LineItem.builder()
-                    .setQuantity((long) line.quantity())
-                    .setPriceData(SessionCreateParams.LineItem.PriceData.builder()
-                            .setCurrency(request.currency().toLowerCase())
-                            .setUnitAmount(line.unitPrice().movePointRight(2).longValueExact())
-                            .setProductData(SessionCreateParams.LineItem.PriceData.ProductData.builder()
-                                    .setName(line.name()).build())
-                            .build())
-                    .build());
+        Builder params =
+                SessionCreateParams.builder()
+                        .setMode(Mode.PAYMENT)
+                        .setSuccessUrl(request.successUrl())
+                        .setCancelUrl(request.cancelUrl())
+                        .setClientReferenceId(orderId)
+                        .setExpiresAt(Instant.now().plusSeconds(30 * 60).getEpochSecond())
+                        .putMetadata("orderId", orderId)
+                        .setPaymentIntentData(
+                                PaymentIntentData.builder()
+                                        .putMetadata("orderId", orderId)
+                                        .build());
+        for (Line line : request.lines()) {
+            params.addLineItem(
+                    LineItem.builder()
+                            .setQuantity((long) line.quantity())
+                            .setPriceData(
+                                    PriceData.builder()
+                                            .setCurrency(request.currency().toLowerCase())
+                                            .setUnitAmount(
+                                                    line.unitPrice()
+                                                            .movePointRight(2)
+                                                            .longValueExact())
+                                            .setProductData(
+                                                    ProductData.builder()
+                                                            .setName(line.name())
+                                                            .build())
+                                            .build())
+                            .build());
         }
         try {
-            Session session = client.checkout().sessions().create(params.build(),
-                    RequestOptions.builder().setIdempotencyKey(request.idempotencyKey()).build());
+            Session session =
+                    client.checkout()
+                            .sessions()
+                            .create(
+                                    params.build(),
+                                    RequestOptions.builder()
+                                            .setIdempotencyKey(request.idempotencyKey())
+                                            .build());
             return new CheckoutSession(session.getId(), session.getUrl());
         } catch (StripeException e) {
-            log.error("Stripe checkout session creation failed for order {}: {}", orderId, e.getMessage());
-            throw new CheckoutUnavailableException("The payment service could not open checkout. Please try again later.", e);
+            log.error(
+                    "Stripe checkout session creation failed for order {}: {}",
+                    orderId,
+                    e.getMessage());
+            throw new CheckoutUnavailableException(
+                    "The payment service could not open checkout. Please try again later.", e);
         }
     }
 
@@ -77,10 +104,17 @@ public class StripePaymentGateway implements PaymentGateway {
     @Override
     public void refund(String paymentIntentId) {
         try {
-            client.refunds().create(RefundCreateParams.builder().setPaymentIntent(paymentIntentId).build(),
-                    RequestOptions.builder().setIdempotencyKey("refund-" + paymentIntentId).build());
+            client.refunds()
+                    .create(
+                            RefundCreateParams.builder().setPaymentIntent(paymentIntentId).build(),
+                            RequestOptions.builder()
+                                    .setIdempotencyKey("refund-" + paymentIntentId)
+                                    .build());
         } catch (StripeException e) {
-            log.error("Stripe refund failed for payment intent {}: {}", paymentIntentId, e.getMessage());
+            log.error(
+                    "Stripe refund failed for payment intent {}: {}",
+                    paymentIntentId,
+                    e.getMessage());
             throw new IllegalStateException("Payment provider error", e);
         }
     }
@@ -100,21 +134,31 @@ public class StripePaymentGateway implements PaymentGateway {
         try {
             object = event.getDataObjectDeserializer().deserializeUnsafe();
         } catch (EventDataObjectDeserializationException | RuntimeException e) {
-            log.warn("Could not deserialize data of Stripe event {} ({})", event.getId(), event.getType());
+            log.warn(
+                    "Could not deserialize data of Stripe event {} ({})",
+                    event.getId(),
+                    event.getType());
         }
         if (object instanceof Session s) {
-            return new WebhookEvent(event.getId(), event.getType(), s.getId(), s.getPaymentIntent(),
+            return new WebhookEvent(
+                    event.getId(),
+                    event.getType(),
+                    s.getId(),
+                    s.getPaymentIntent(),
                     orderId(s.getMetadata()));
         }
         if (object instanceof PaymentIntent pi) {
-            return new WebhookEvent(event.getId(), event.getType(), null, pi.getId(), orderId(pi.getMetadata()));
+            return new WebhookEvent(
+                    event.getId(), event.getType(), null, pi.getId(), orderId(pi.getMetadata()));
         }
         return new WebhookEvent(event.getId(), event.getType(), null, null, null);
     }
 
     private static Long orderId(Map<String, String> metadata) {
         try {
-            return metadata == null || metadata.get("orderId") == null ? null : Long.valueOf(metadata.get("orderId"));
+            return metadata == null || metadata.get("orderId") == null
+                    ? null
+                    : Long.valueOf(metadata.get("orderId"));
         } catch (NumberFormatException e) {
             return null;
         }

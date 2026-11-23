@@ -10,7 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.lang.NonNull;
 
-public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+public interface ProductRepository
+        extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
 
     /** Category is fetched in the same query; images are batch fetched afterwards. */
     @Override

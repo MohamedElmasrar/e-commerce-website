@@ -43,8 +43,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ActiveProfiles("test")
 class ShopIntegrationTest {
 
-    @Container
-    @ServiceConnection
+    @Container @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
 
     @Autowired JdbcTemplate jdbc;
@@ -55,16 +54,24 @@ class ShopIntegrationTest {
     @Autowired EntityManagerFactory emf;
 
     private final ShippingAddressRequest address =
-            new ShippingAddressRequest("Jane", "1 Main St", null, "Springfield", "IL", "62701", "US");
+            new ShippingAddressRequest(
+                    "Jane", "1 Main St", null, "Springfield", "IL", "62701", "US");
 
     private long customerId() {
-        return jdbc.queryForObject("select id from users where email = 'customer@example.com'", Long.class);
+        return jdbc.queryForObject(
+                "select id from users where email = 'customer@example.com'", Long.class);
     }
 
     private long productWithStock(int stock) {
-        long id = jdbc.queryForObject("select id from products order by id limit 1 offset ?", Long.class,
-                (int) (Math.random() * 20));
-        jdbc.update("update inventory set quantity_on_hand = ?, reserved = 0 where product_id = ?", stock, id);
+        long id =
+                jdbc.queryForObject(
+                        "select id from products order by id limit 1 offset ?",
+                        Long.class,
+                        (int) (Math.random() * 20));
+        jdbc.update(
+                "update inventory set quantity_on_hand = ?, reserved = 0 where product_id = ?",
+                stock,
+                id);
         return id;
     }
 
@@ -79,16 +86,17 @@ class ShopIntegrationTest {
         AtomicInteger rejected = new AtomicInteger();
         List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < threads; i++) {
-            futures.add(pool.submit(() -> {
-                start.await();
-                try {
-                    inventoryService.reserve(productId, 1, "race");
-                    ok.incrementAndGet();
-                } catch (InsufficientStockException e) {
-                    rejected.incrementAndGet();
-                }
-                return null;
-            }));
+            futures.add(
+                    pool.submit(() -> {
+                        start.await();
+                        try {
+                            inventoryService.reserve(productId, 1, "race");
+                            ok.incrementAndGet();
+                        } catch (InsufficientStockException e) {
+                            rejected.incrementAndGet();
+                        }
+                        return null;
+                    }));
         }
         start.countDown();
         for (Future<?> f : futures) {
@@ -104,7 +112,9 @@ class ShopIntegrationTest {
     @Test
     void checkoutUsesDatabasePricesReservesStockAndClearsCart() {
         long productId = productWithStock(10);
-        BigDecimal price = jdbc.queryForObject("select price from products where id = ?", BigDecimal.class, productId);
+        BigDecimal price =
+                jdbc.queryForObject(
+                        "select price from products where id = ?", BigDecimal.class, productId);
         long userId = customerId();
         cartService.clear(userId);
         cartService.addItem(userId, productId, 3);
@@ -120,17 +130,23 @@ class ShopIntegrationTest {
     void insufficientStockRollsBackTheWholeCheckout() {
         long userId = customerId();
         long a = productWithStock(10);
-        long b = jdbc.queryForObject("select id from products where id <> ? order by id limit 1", Long.class, a);
+        long b =
+                jdbc.queryForObject(
+                        "select id from products where id <> ? order by id limit 1", Long.class, a);
         jdbc.update("update inventory set quantity_on_hand = 1 where product_id = ?", b);
         cartService.clear(userId);
         cartService.addItem(userId, a, 2);
         cartService.addItem(userId, b, 1);
-        jdbc.update("update inventory set quantity_on_hand = 0 where product_id = ?", b); // sold out meanwhile
+        jdbc.update(
+                "update inventory set quantity_on_hand = 0 where product_id = ?",
+                b); // sold out meanwhile
         int ordersBefore = jdbc.queryForObject("select count(*) from orders", Integer.class);
 
-        assertThatThrownBy(() -> orderService.checkout(userId, address)).isInstanceOf(InsufficientStockException.class);
+        assertThatThrownBy(() -> orderService.checkout(userId, address))
+                .isInstanceOf(InsufficientStockException.class);
 
-        assertThat(jdbc.queryForObject("select count(*) from orders", Integer.class)).isEqualTo(ordersBefore);
+        assertThat(jdbc.queryForObject("select count(*) from orders", Integer.class))
+                .isEqualTo(ordersBefore);
         assertThat(inventoryService.quantityOnHand(a)).isEqualTo(10);
         assertThat(cartService.get(userId).items()).hasSize(2);
     }
@@ -140,26 +156,47 @@ class ShopIntegrationTest {
         Statistics stats = emf.unwrap(SessionFactory.class).getStatistics();
 
         stats.clear();
-        PageResponse<ProductResponse> small = productService.search(
-                new ProductFilter(null, null, null, null, null, null, false), 0, 5, "price,asc");
+        PageResponse<ProductResponse> small =
+                productService.search(
+                        new ProductFilter(null, null, null, null, null, null, false),
+                        0,
+                        5,
+                        "price,asc");
         long queriesFor5 = stats.getPrepareStatementCount();
         stats.clear();
-        PageResponse<ProductResponse> large = productService.search(
-                new ProductFilter(null, null, null, null, null, null, false), 0, 30, "price,asc");
+        PageResponse<ProductResponse> large =
+                productService.search(
+                        new ProductFilter(null, null, null, null, null, null, false),
+                        0,
+                        30,
+                        "price,asc");
         long queriesFor30 = stats.getPrepareStatementCount();
 
         assertThat(small.content()).hasSize(5);
         assertThat(large.totalElements()).isGreaterThanOrEqualTo(30);
-        assertThat(queriesFor30).as("no N+1: query count independent of page size").isEqualTo(queriesFor5)
+        assertThat(queriesFor30)
+                .as("no N+1: query count independent of page size")
+                .isEqualTo(queriesFor5)
                 .isLessThanOrEqualTo(5);
         assertThat(large.content()).extracting(ProductResponse::price).isSorted();
 
-        PageResponse<ProductResponse> priced = productService.search(
-                new ProductFilter(null, null, null, new BigDecimal("5"), new BigDecimal("10"), true, false),
-                0, 100, "name,asc");
-        assertThat(priced.content()).allSatisfy(p -> {
-            assertThat(p.price()).isBetween(new BigDecimal("5"), new BigDecimal("10"));
-            assertThat(p.inStock()).isTrue();
-        });
+        PageResponse<ProductResponse> priced =
+                productService.search(
+                        new ProductFilter(
+                                null,
+                                null,
+                                null,
+                                new BigDecimal("5"),
+                                new BigDecimal("10"),
+                                true,
+                                false),
+                        0,
+                        100,
+                        "name,asc");
+        assertThat(priced.content())
+                .allSatisfy(p -> {
+                    assertThat(p.price()).isBetween(new BigDecimal("5"), new BigDecimal("10"));
+                    assertThat(p.inStock()).isTrue();
+                });
     }
 }

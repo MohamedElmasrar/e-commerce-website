@@ -1,6 +1,7 @@
 package com.example.ecommerce.common.exception;
 
 import com.example.ecommerce.common.dto.ApiError;
+import com.example.ecommerce.common.dto.ApiError.FieldError;
 import com.example.ecommerce.common.dto.ApiErrors;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
@@ -25,27 +27,34 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {
-        List<ApiError.FieldError> fields = ex.getBindingResult().getFieldErrors().stream()
-                .map(f -> new ApiError.FieldError(f.getField(), f.getDefaultMessage()))
-                .toList();
+    public ResponseEntity<ApiError> handleValidation(
+            MethodArgumentNotValidException ex, HttpServletRequest req) {
+        List<FieldError> fields =
+                ex.getBindingResult().getFieldErrors().stream()
+                        .map(f -> new FieldError(f.getField(), f.getDefaultMessage()))
+                        .toList();
         return build(HttpStatus.BAD_REQUEST, "Validation failed", req, fields);
     }
 
-    @ExceptionHandler({HttpMessageNotReadableException.class, MissingServletRequestParameterException.class,
-            MethodArgumentTypeMismatchException.class,
-            org.springframework.web.multipart.support.MissingServletRequestPartException.class})
+    @ExceptionHandler({
+        HttpMessageNotReadableException.class,
+        MissingServletRequestParameterException.class,
+        MethodArgumentTypeMismatchException.class,
+        MissingServletRequestPartException.class
+    })
     public ResponseEntity<ApiError> handleBadRequest(Exception ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "Malformed request", req, null);
     }
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiError> handleBadRequestException(BadRequestException ex, HttpServletRequest req) {
+    public ResponseEntity<ApiError> handleBadRequestException(
+            BadRequestException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ApiError> handleTooLarge(MaxUploadSizeExceededException ex, HttpServletRequest req) {
+    public ResponseEntity<ApiError> handleTooLarge(
+            MaxUploadSizeExceededException ex, HttpServletRequest req) {
         return build(HttpStatus.PAYLOAD_TOO_LARGE, "Uploaded file is too large", req, null);
     }
 
@@ -55,23 +64,29 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex, HttpServletRequest req) {
+    public ResponseEntity<ApiError> handleNoResource(
+            NoResourceFoundException ex, HttpServletRequest req) {
         return build(HttpStatus.NOT_FOUND, "Resource not found", req, null);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiError> handleMethod(HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
+    public ResponseEntity<ApiError> handleMethod(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
         return build(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), req, null);
     }
 
     @ExceptionHandler({ConflictException.class, DataIntegrityViolationException.class})
     public ResponseEntity<ApiError> handleConflict(Exception ex, HttpServletRequest req) {
-        String msg = ex instanceof ConflictException ? ex.getMessage() : "Request conflicts with existing data";
+        String msg =
+                ex instanceof ConflictException
+                        ? ex.getMessage()
+                        : "Request conflicts with existing data";
         return build(HttpStatus.CONFLICT, msg, req, null);
     }
 
     @ExceptionHandler(BusinessRuleException.class)
-    public ResponseEntity<ApiError> handleBusinessRule(BusinessRuleException ex, HttpServletRequest req) {
+    public ResponseEntity<ApiError> handleBusinessRule(
+            BusinessRuleException ex, HttpServletRequest req) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req, null);
     }
 
@@ -91,8 +106,9 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error", req, null);
     }
 
-    private ResponseEntity<ApiError> build(HttpStatus status, String message, HttpServletRequest req,
-                                           List<ApiError.FieldError> fields) {
-        return ResponseEntity.status(status).body(ApiErrors.of(status, message, req.getRequestURI(), fields));
+    private ResponseEntity<ApiError> build(
+            HttpStatus status, String message, HttpServletRequest req, List<FieldError> fields) {
+        return ResponseEntity.status(status)
+                .body(ApiErrors.of(status, message, req.getRequestURI(), fields));
     }
 }

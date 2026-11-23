@@ -22,18 +22,28 @@ public class S3StorageService implements StorageService {
 
     @Override
     public void put(String key, InputStream content, long size, String contentType) {
-        s3.putObject(PutObjectRequest.builder()
-                        .bucket(properties.bucket()).key(key).contentType(contentType).contentLength(size).build(),
+        s3.putObject(
+                PutObjectRequest.builder()
+                        .bucket(properties.bucket())
+                        .key(key)
+                        .contentType(contentType)
+                        .contentLength(size)
+                        .build(),
                 RequestBody.fromInputStream(content, size));
     }
 
     @Override
     public StoredObject get(String key) {
         try {
-            ResponseInputStream<GetObjectResponse> in = s3.getObject(
-                    GetObjectRequest.builder().bucket(properties.bucket()).key(key).build());
+            ResponseInputStream<GetObjectResponse> in =
+                    s3.getObject(
+                            GetObjectRequest.builder()
+                                    .bucket(properties.bucket())
+                                    .key(key)
+                                    .build());
             GetObjectResponse r = in.response();
-            return new StoredObject(in, r.contentType(), r.contentLength() == null ? -1 : r.contentLength());
+            return new StoredObject(
+                    in, r.contentType(), r.contentLength() == null ? -1 : r.contentLength());
         } catch (NoSuchKeyException e) {
             throw new NotFoundException("Object not found: " + key);
         }

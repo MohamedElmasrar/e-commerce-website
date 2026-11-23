@@ -22,6 +22,7 @@ import com.example.ecommerce.security.service.JwtService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +36,12 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(ProductController.class)
 @ActiveProfiles("test")
 @EnableConfigurationProperties({JwtProperties.class, CorsProperties.class})
-@Import({SecurityConfig.class, JwtService.class, GlobalExceptionHandler.class, RequestIdFilter.class})
+@Import({
+    SecurityConfig.class,
+    JwtService.class,
+    GlobalExceptionHandler.class,
+    RequestIdFilter.class
+})
 class ProductControllerTest {
 
     @Autowired MockMvc mvc;
@@ -43,13 +49,27 @@ class ProductControllerTest {
 
     @Test
     void listIsPublicAndPassesFiltersPagingAndSort() throws Exception {
-        ProductResponse product = new ProductResponse(1L, "TEA", "tea", "Tea", null,
-                new BigDecimal("3.00"), "USD", true, null, List.of(), true, Instant.EPOCH);
+        ProductResponse product =
+                new ProductResponse(
+                        1L,
+                        "TEA",
+                        "tea",
+                        "Tea",
+                        null,
+                        new BigDecimal("3.00"),
+                        "USD",
+                        true,
+                        null,
+                        List.of(),
+                        true,
+                        Instant.EPOCH);
         when(productService.search(any(), eq(2), eq(12), eq("price,asc")))
                 .thenReturn(new PageResponse<>(List.of(product), 2, 12, 25, 3));
 
-        mvc.perform(get("/api/v1/products?page=2&size=12&sort=price,asc&q=tea&category=drinks"
-                        + "&minPrice=1.50&maxPrice=9&inStock=true"))
+        mvc.perform(
+                        get(
+                                "/api/v1/products?page=2&size=12&sort=price,asc&q=tea&category=drinks"
+                                        + "&minPrice=1.50&maxPrice=9&inStock=true"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.page").value(2))
                 .andExpect(jsonPath("$.content[0].inStock").value(true))
@@ -57,14 +77,35 @@ class ProductControllerTest {
 
         ArgumentCaptor<ProductFilter> f = ArgumentCaptor.forClass(ProductFilter.class);
         verify(productService).search(f.capture(), eq(2), eq(12), eq("price,asc"));
-        org.assertj.core.api.Assertions.assertThat(f.getValue()).isEqualTo(
-                new ProductFilter("tea", null, "drinks", new BigDecimal("1.50"), new BigDecimal("9"), true, false));
+        Assertions.assertThat(f.getValue())
+                .isEqualTo(
+                        new ProductFilter(
+                                "tea",
+                                null,
+                                "drinks",
+                                new BigDecimal("1.50"),
+                                new BigDecimal("9"),
+                                true,
+                                false));
     }
 
     @Test
     void detailShowsAvailabilityWithoutStockCount() throws Exception {
-        when(productService.getBySlug("tea")).thenReturn(new ProductResponse(1L, "TEA", "tea", "Tea", null,
-                new BigDecimal("3.00"), "USD", true, null, List.of(), false, Instant.EPOCH));
+        when(productService.getBySlug("tea"))
+                .thenReturn(
+                        new ProductResponse(
+                                1L,
+                                "TEA",
+                                "tea",
+                                "Tea",
+                                null,
+                                new BigDecimal("3.00"),
+                                "USD",
+                                true,
+                                null,
+                                List.of(),
+                                false,
+                                Instant.EPOCH));
 
         mvc.perform(get("/api/v1/products/tea"))
                 .andExpect(status().isOk())

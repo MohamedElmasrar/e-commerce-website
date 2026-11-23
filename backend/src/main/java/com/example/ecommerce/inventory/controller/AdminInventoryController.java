@@ -30,25 +30,36 @@ public class AdminInventoryController {
     private final InventoryService inventoryService;
 
     @GetMapping
-    public PageResponse<InventoryResponse> list(@RequestParam(defaultValue = "0") int page,
-                                                @RequestParam(defaultValue = "20") int size,
-                                                @RequestParam(defaultValue = "false") boolean lowStock) {
+    public PageResponse<InventoryResponse> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "false") boolean lowStock) {
         PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
         return PageResponse.of(
-                inventoryRepository.findRows(lowStock ? InventoryService.LOW_STOCK_THRESHOLD : null, pageable),
+                inventoryRepository.findRows(
+                        lowStock ? InventoryService.LOW_STOCK_THRESHOLD : null, pageable),
                 this::toResponse);
     }
 
     @PostMapping("/{productId}/adjust")
-    public ResponseEntity<InventoryResponse> adjust(@PathVariable Long productId,
-                                                    @Valid @RequestBody AdjustStockRequest request) {
+    public ResponseEntity<InventoryResponse> adjust(
+            @PathVariable Long productId, @Valid @RequestBody AdjustStockRequest request) {
         inventoryService.adjust(productId, request.delta(), request.note());
-        return ResponseEntity.ok(toResponse(inventoryRepository.findRow(productId)
-                .orElseThrow(() -> new NotFoundException("No inventory for product " + productId))));
+        return ResponseEntity.ok(
+                toResponse(
+                        inventoryRepository
+                                .findRow(productId)
+                                .orElseThrow(() ->
+                                        new NotFoundException(
+                                                "No inventory for product " + productId))));
     }
 
     private InventoryResponse toResponse(InventoryRow r) {
-        return new InventoryResponse(r.getProductId(), r.getSku(), r.getName(), r.getQuantityOnHand(),
+        return new InventoryResponse(
+                r.getProductId(),
+                r.getSku(),
+                r.getName(),
+                r.getQuantityOnHand(),
                 r.getQuantityOnHand() <= InventoryService.LOW_STOCK_THRESHOLD);
     }
 }

@@ -185,6 +185,8 @@ Configure a Stripe webhook destination at the publicly reachable HTTPS URL for `
 
 ## Checks and tests
 
+To format backend Java sources and clean up imports, run `mvn -f backend/pom.xml spotless:apply` from the repository root. The backend's `verify` phase checks formatting automatically.
+
 Run the checks from the repository root.
 
 ```bash

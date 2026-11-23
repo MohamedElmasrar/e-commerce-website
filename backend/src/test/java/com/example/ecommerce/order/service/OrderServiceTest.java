@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -37,8 +36,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.springframework.context.ApplicationEventPublisher;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -51,12 +50,19 @@ class OrderServiceTest {
 
     OrderService service;
     final ShippingAddressRequest address =
-            new ShippingAddressRequest("Jane", "1 Main St", null, "Springfield", "IL", "62701", "US");
+            new ShippingAddressRequest(
+                    "Jane", "1 Main St", null, "Springfield", "IL", "62701", "US");
 
     @BeforeEach
     void setUp() {
-        service = new OrderService(orderRepository, cartService, productService, inventoryService, new OrderMapper(),
-                events);
+        service =
+                new OrderService(
+                        orderRepository,
+                        cartService,
+                        productService,
+                        inventoryService,
+                        new OrderMapper(),
+                        events);
     }
 
     private Product product(long id, String price) {
@@ -84,16 +90,17 @@ class OrderServiceTest {
 
     @Test
     void checkoutUsesCurrentDatabasePricesReservesStockAndClearsCart() {
-        Product stale = product(10, "1.00");           // price held by the cart's stale entity
-        Product fresh = product(10, "19.99");          // price currently in the database
+        Product stale = product(10, "1.00"); // price held by the cart's stale entity
+        Product fresh = product(10, "19.99"); // price currently in the database
         Cart cart = cartWith(stale, 3);
         when(cartService.loadForCheckout(1L)).thenReturn(cart);
         when(productService.find(10L)).thenReturn(fresh);
-        when(orderRepository.saveAndFlush(any(Order.class))).thenAnswer(inv -> {
-            Order o = inv.getArgument(0);
-            o.setId(55L);
-            return o;
-        });
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(inv -> {
+                    Order o = inv.getArgument(0);
+                    o.setId(55L);
+                    return o;
+                });
 
         OrderResponse response = service.checkout(1L, address);
 
@@ -110,21 +117,26 @@ class OrderServiceTest {
         Cart cart = cartWith(product(10, "5.00"), 99);
         when(cartService.loadForCheckout(1L)).thenReturn(cart);
         when(productService.find(10L)).thenReturn(product(10, "5.00"));
-        when(orderRepository.saveAndFlush(any(Order.class))).thenAnswer(inv -> {
-            Order o = inv.getArgument(0);
-            o.setId(1L);
-            return o;
-        });
-        doThrow(new InsufficientStockException(10L, 99)).when(inventoryService).reserve(eq(10L), eq(99), anyString());
+        when(orderRepository.saveAndFlush(any(Order.class)))
+                .thenAnswer(inv -> {
+                    Order o = inv.getArgument(0);
+                    o.setId(1L);
+                    return o;
+                });
+        doThrow(new InsufficientStockException(10L, 99))
+                .when(inventoryService)
+                .reserve(eq(10L), eq(99), anyString());
 
-        assertThatThrownBy(() -> service.checkout(1L, address)).isInstanceOf(InsufficientStockException.class);
+        assertThatThrownBy(() -> service.checkout(1L, address))
+                .isInstanceOf(InsufficientStockException.class);
         verify(cartService, never()).clear(any(Cart.class));
     }
 
     @Test
     void emptyCartIsRejected() {
         when(cartService.loadForCheckout(1L)).thenReturn(new Cart());
-        assertThatThrownBy(() -> service.checkout(1L, address)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.checkout(1L, address))
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test
@@ -151,7 +163,8 @@ class OrderServiceTest {
         order.setId(5L);
         order.setStatus(OrderStatus.DELIVERED);
         when(orderRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(order));
-        assertThatThrownBy(() -> service.updateStatus(5L, OrderStatus.PAID)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.updateStatus(5L, OrderStatus.PAID))
+                .isInstanceOf(BusinessRuleException.class);
         verify(inventoryService, never()).release(any(), anyInt(), any());
     }
 

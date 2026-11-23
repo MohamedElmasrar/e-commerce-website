@@ -45,8 +45,13 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PaymentService(gateway, paymentRepository, processedEvents, orderService,
-                new StripeProperties("sk", "whsec", "http://ok", "http://cancel"));
+        service =
+                new PaymentService(
+                        gateway,
+                        paymentRepository,
+                        processedEvents,
+                        orderService,
+                        new StripeProperties("sk", "whsec", "http://ok", "http://cancel"));
     }
 
     private Order order(OrderStatus status) {
@@ -66,18 +71,23 @@ class PaymentServiceTest {
 
     @Test
     void checkoutSessionIsBuiltFromServerSideOrderAndPersisted() {
-        when(orderService.findOwnedForUpdate(1L, 9L)).thenReturn(order(OrderStatus.PENDING_PAYMENT));
-        when(gateway.createCheckoutSession(any())).thenReturn(new CheckoutSession("cs_1", "https://pay"));
+        when(orderService.findOwnedForUpdate(1L, 9L))
+                .thenReturn(order(OrderStatus.PENDING_PAYMENT));
+        when(gateway.createCheckoutSession(any()))
+                .thenReturn(new CheckoutSession("cs_1", "https://pay"));
 
         CheckoutSessionResponse r = service.createCheckoutSession(1L, 9L);
 
         assertThat(r.sessionId()).isEqualTo("cs_1");
-        ArgumentCaptor<CheckoutSessionRequest> req = ArgumentCaptor.forClass(CheckoutSessionRequest.class);
+        ArgumentCaptor<CheckoutSessionRequest> req =
+                ArgumentCaptor.forClass(CheckoutSessionRequest.class);
         verify(gateway).createCheckoutSession(req.capture());
-        assertThat(req.getValue().lines()).singleElement().satisfies(l -> {
-            assertThat(l.unitPrice()).isEqualByComparingTo("20.00");
-            assertThat(l.quantity()).isEqualTo(2);
-        });
+        assertThat(req.getValue().lines())
+                .singleElement()
+                .satisfies(l -> {
+                    assertThat(l.unitPrice()).isEqualByComparingTo("20.00");
+                    assertThat(l.quantity()).isEqualTo(2);
+                });
         assertThat(req.getValue().successUrl()).isEqualTo("http://ok");
         ArgumentCaptor<Payment> p = ArgumentCaptor.forClass(Payment.class);
         verify(paymentRepository).save(p.capture());
@@ -88,7 +98,8 @@ class PaymentServiceTest {
     @Test
     void paidOrderCannotStartCheckout() {
         when(orderService.findOwnedForUpdate(1L, 9L)).thenReturn(order(OrderStatus.PAID));
-        assertThatThrownBy(() -> service.createCheckoutSession(1L, 9L)).isInstanceOf(BusinessRuleException.class);
+        assertThatThrownBy(() -> service.createCheckoutSession(1L, 9L))
+                .isInstanceOf(BusinessRuleException.class);
         verify(gateway, never()).createCheckoutSession(any());
     }
 
@@ -97,9 +108,12 @@ class PaymentServiceTest {
         Payment payment = new Payment();
         payment.setOrderId(9L);
         payment.setStatus(PaymentStatus.CREATED);
-        when(gateway.parseWebhook("p", "s")).thenReturn(
-                new WebhookEvent("evt_1", WebhookEvent.CHECKOUT_COMPLETED, "cs_1", "pi_1", 9L));
-        when(processedEvents.insertIfAbsent("evt_1", WebhookEvent.CHECKOUT_COMPLETED)).thenReturn(1);
+        when(gateway.parseWebhook("p", "s"))
+                .thenReturn(
+                        new WebhookEvent(
+                                "evt_1", WebhookEvent.CHECKOUT_COMPLETED, "cs_1", "pi_1", 9L));
+        when(processedEvents.insertIfAbsent("evt_1", WebhookEvent.CHECKOUT_COMPLETED))
+                .thenReturn(1);
         when(paymentRepository.findByStripeSessionId("cs_1")).thenReturn(Optional.of(payment));
         when(orderService.markPaid(9L)).thenReturn(true);
 
@@ -112,9 +126,12 @@ class PaymentServiceTest {
 
     @Test
     void replayedEventIsNoOp() {
-        when(gateway.parseWebhook("p", "s")).thenReturn(
-                new WebhookEvent("evt_1", WebhookEvent.CHECKOUT_COMPLETED, "cs_1", "pi_1", 9L));
-        when(processedEvents.insertIfAbsent("evt_1", WebhookEvent.CHECKOUT_COMPLETED)).thenReturn(0);
+        when(gateway.parseWebhook("p", "s"))
+                .thenReturn(
+                        new WebhookEvent(
+                                "evt_1", WebhookEvent.CHECKOUT_COMPLETED, "cs_1", "pi_1", 9L));
+        when(processedEvents.insertIfAbsent("evt_1", WebhookEvent.CHECKOUT_COMPLETED))
+                .thenReturn(0);
 
         service.handleWebhook("p", "s");
 
@@ -127,8 +144,9 @@ class PaymentServiceTest {
         Payment payment = new Payment();
         payment.setOrderId(9L);
         payment.setStatus(PaymentStatus.CREATED);
-        when(gateway.parseWebhook("p", "s")).thenReturn(
-                new WebhookEvent("evt_2", WebhookEvent.CHECKOUT_EXPIRED, "cs_1", null, 9L));
+        when(gateway.parseWebhook("p", "s"))
+                .thenReturn(
+                        new WebhookEvent("evt_2", WebhookEvent.CHECKOUT_EXPIRED, "cs_1", null, 9L));
         when(processedEvents.insertIfAbsent("evt_2", WebhookEvent.CHECKOUT_EXPIRED)).thenReturn(1);
         when(paymentRepository.findByStripeSessionId("cs_1")).thenReturn(Optional.of(payment));
 
@@ -142,8 +160,9 @@ class PaymentServiceTest {
     void failedEventMarksPaymentFailedWithoutTouchingOrder() {
         Payment payment = new Payment();
         payment.setStatus(PaymentStatus.CREATED);
-        when(gateway.parseWebhook("p", "s")).thenReturn(
-                new WebhookEvent("evt_3", WebhookEvent.PAYMENT_FAILED, null, "pi_9", 9L));
+        when(gateway.parseWebhook("p", "s"))
+                .thenReturn(
+                        new WebhookEvent("evt_3", WebhookEvent.PAYMENT_FAILED, null, "pi_9", 9L));
         when(processedEvents.insertIfAbsent("evt_3", WebhookEvent.PAYMENT_FAILED)).thenReturn(1);
         when(paymentRepository.findFirstByOrderIdAndStatusOrderByIdDesc(9L, PaymentStatus.CREATED))
                 .thenReturn(Optional.of(payment));
@@ -165,24 +184,30 @@ class PaymentServiceTest {
     @Test
     void newCheckoutSessionExpiresThePreviousOneAndUsesAStableIdempotencyKey() {
         Payment old = payment("cs_old", PaymentStatus.CREATED);
-        when(orderService.findOwnedForUpdate(1L, 9L)).thenReturn(order(OrderStatus.PENDING_PAYMENT));
-        when(paymentRepository.findByOrderIdAndStatus(9L, PaymentStatus.CREATED)).thenReturn(List.of(old));
+        when(orderService.findOwnedForUpdate(1L, 9L))
+                .thenReturn(order(OrderStatus.PENDING_PAYMENT));
+        when(paymentRepository.findByOrderIdAndStatus(9L, PaymentStatus.CREATED))
+                .thenReturn(List.of(old));
         when(paymentRepository.countByOrderId(9L)).thenReturn(1L);
-        when(gateway.createCheckoutSession(any())).thenReturn(new CheckoutSession("cs_new", "https://pay"));
+        when(gateway.createCheckoutSession(any()))
+                .thenReturn(new CheckoutSession("cs_new", "https://pay"));
 
         service.createCheckoutSession(1L, 9L);
 
         verify(gateway).expireSession("cs_old");
         assertThat(old.getStatus()).isEqualTo(PaymentStatus.EXPIRED);
-        ArgumentCaptor<CheckoutSessionRequest> req = ArgumentCaptor.forClass(CheckoutSessionRequest.class);
+        ArgumentCaptor<CheckoutSessionRequest> req =
+                ArgumentCaptor.forClass(CheckoutSessionRequest.class);
         verify(gateway).createCheckoutSession(req.capture());
         assertThat(req.getValue().idempotencyKey()).isEqualTo("checkout-order-9-1");
     }
 
     @Test
     void sameAttemptReturnsExistingSessionInsteadOfSavingADuplicateRow() {
-        when(orderService.findOwnedForUpdate(1L, 9L)).thenReturn(order(OrderStatus.PENDING_PAYMENT));
-        when(gateway.createCheckoutSession(any())).thenReturn(new CheckoutSession("cs_1", "https://pay"));
+        when(orderService.findOwnedForUpdate(1L, 9L))
+                .thenReturn(order(OrderStatus.PENDING_PAYMENT));
+        when(gateway.createCheckoutSession(any()))
+                .thenReturn(new CheckoutSession("cs_1", "https://pay"));
         when(paymentRepository.findByStripeSessionId("cs_1"))
                 .thenReturn(Optional.of(payment("cs_1", PaymentStatus.CREATED)));
 
@@ -195,11 +220,13 @@ class PaymentServiceTest {
     @Test
     void expiredSessionDoesNotCancelOrderWhileAnotherSessionIsLive() {
         Payment expired = payment("cs_1", PaymentStatus.CREATED);
-        when(gateway.parseWebhook("p", "s")).thenReturn(
-                new WebhookEvent("evt_2", WebhookEvent.CHECKOUT_EXPIRED, "cs_1", null, 9L));
+        when(gateway.parseWebhook("p", "s"))
+                .thenReturn(
+                        new WebhookEvent("evt_2", WebhookEvent.CHECKOUT_EXPIRED, "cs_1", null, 9L));
         when(processedEvents.insertIfAbsent("evt_2", WebhookEvent.CHECKOUT_EXPIRED)).thenReturn(1);
         when(paymentRepository.findByStripeSessionId("cs_1")).thenReturn(Optional.of(expired));
-        when(paymentRepository.existsByOrderIdAndStatus(9L, PaymentStatus.CREATED)).thenReturn(true);
+        when(paymentRepository.existsByOrderIdAndStatus(9L, PaymentStatus.CREATED))
+                .thenReturn(true);
 
         service.handleWebhook("p", "s");
 
@@ -210,9 +237,12 @@ class PaymentServiceTest {
     @Test
     void paymentForCancelledOrderIsRefunded() {
         Payment payment = payment("cs_1", PaymentStatus.CREATED);
-        when(gateway.parseWebhook("p", "s")).thenReturn(
-                new WebhookEvent("evt_1", WebhookEvent.CHECKOUT_COMPLETED, "cs_1", "pi_1", 9L));
-        when(processedEvents.insertIfAbsent("evt_1", WebhookEvent.CHECKOUT_COMPLETED)).thenReturn(1);
+        when(gateway.parseWebhook("p", "s"))
+                .thenReturn(
+                        new WebhookEvent(
+                                "evt_1", WebhookEvent.CHECKOUT_COMPLETED, "cs_1", "pi_1", 9L));
+        when(processedEvents.insertIfAbsent("evt_1", WebhookEvent.CHECKOUT_COMPLETED))
+                .thenReturn(1);
         when(paymentRepository.findByStripeSessionId("cs_1")).thenReturn(Optional.of(payment));
         when(orderService.markPaid(9L)).thenReturn(false);
 
@@ -225,9 +255,12 @@ class PaymentServiceTest {
     @Test
     void secondPaymentForAlreadyPaidOrderIsRefunded() {
         Payment payment = payment("cs_2", PaymentStatus.CREATED);
-        when(gateway.parseWebhook("p", "s")).thenReturn(
-                new WebhookEvent("evt_5", WebhookEvent.CHECKOUT_COMPLETED, "cs_2", "pi_2", 9L));
-        when(processedEvents.insertIfAbsent("evt_5", WebhookEvent.CHECKOUT_COMPLETED)).thenReturn(1);
+        when(gateway.parseWebhook("p", "s"))
+                .thenReturn(
+                        new WebhookEvent(
+                                "evt_5", WebhookEvent.CHECKOUT_COMPLETED, "cs_2", "pi_2", 9L));
+        when(processedEvents.insertIfAbsent("evt_5", WebhookEvent.CHECKOUT_COMPLETED))
+                .thenReturn(1);
         when(paymentRepository.findByStripeSessionId("cs_2")).thenReturn(Optional.of(payment));
         when(orderService.markPaid(9L)).thenReturn(false);
 
@@ -239,9 +272,12 @@ class PaymentServiceTest {
     @Test
     void acceptedPaymentIsNotRefunded() {
         Payment payment = payment("cs_1", PaymentStatus.CREATED);
-        when(gateway.parseWebhook("p", "s")).thenReturn(
-                new WebhookEvent("evt_1", WebhookEvent.CHECKOUT_COMPLETED, "cs_1", "pi_1", 9L));
-        when(processedEvents.insertIfAbsent("evt_1", WebhookEvent.CHECKOUT_COMPLETED)).thenReturn(1);
+        when(gateway.parseWebhook("p", "s"))
+                .thenReturn(
+                        new WebhookEvent(
+                                "evt_1", WebhookEvent.CHECKOUT_COMPLETED, "cs_1", "pi_1", 9L));
+        when(processedEvents.insertIfAbsent("evt_1", WebhookEvent.CHECKOUT_COMPLETED))
+                .thenReturn(1);
         when(paymentRepository.findByStripeSessionId("cs_1")).thenReturn(Optional.of(payment));
         when(orderService.markPaid(9L)).thenReturn(true);
 
@@ -254,7 +290,8 @@ class PaymentServiceTest {
     @Test
     void cancellingAnOrderExpiresItsOpenStripeSession() {
         Payment open = payment("cs_1", PaymentStatus.CREATED);
-        when(paymentRepository.findByOrderIdAndStatus(9L, PaymentStatus.CREATED)).thenReturn(List.of(open));
+        when(paymentRepository.findByOrderIdAndStatus(9L, PaymentStatus.CREATED))
+                .thenReturn(List.of(open));
 
         service.onOrderCancelled(new OrderCancelledEvent(9L));
 
@@ -265,7 +302,8 @@ class PaymentServiceTest {
     @Test
     void invalidSignatureStopsBeforeAnyStateChange() {
         when(gateway.parseWebhook("p", "bad")).thenThrow(new InvalidWebhookSignatureException());
-        assertThatThrownBy(() -> service.handleWebhook("p", "bad")).isInstanceOf(InvalidWebhookSignatureException.class);
+        assertThatThrownBy(() -> service.handleWebhook("p", "bad"))
+                .isInstanceOf(InvalidWebhookSignatureException.class);
         verify(processedEvents, never()).insertIfAbsent(any(), any());
     }
 }

@@ -6,7 +6,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,7 +19,7 @@ import lombok.Setter;
 @Setter
 @Builder
 @NoArgsConstructor
-@lombok.AllArgsConstructor
+@AllArgsConstructor
 public class User extends BaseEntity {
 
     @Column(nullable = false)
@@ -33,7 +35,7 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private Role role;
 
-    @Builder.Default
+    @Default
     @Column(nullable = false)
     private boolean enabled = true;
 }

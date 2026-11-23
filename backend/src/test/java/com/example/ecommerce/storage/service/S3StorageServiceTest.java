@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import com.example.ecommerce.common.exception.NotFoundException;
 import com.example.ecommerce.config.properties.S3Properties;
 import com.example.ecommerce.storage.model.StoredObject;
-import com.example.ecommerce.storage.service.S3StorageService;
 import java.io.ByteArrayInputStream;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -28,7 +27,8 @@ class S3StorageServiceTest {
 
     private final S3Client s3 = mock(S3Client.class);
     private final S3StorageService storage =
-            new S3StorageService(s3, new S3Properties("http://x", "us-east-1", "media", "a", "b", true));
+            new S3StorageService(
+                    s3, new S3Properties("http://x", "us-east-1", "media", "a", "b", true));
 
     @Test
     void putSendsBucketKeyContentTypeAndLength() {
@@ -45,9 +45,14 @@ class S3StorageServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void getReturnsStreamAndMetadata() {
-        GetObjectResponse meta = GetObjectResponse.builder().contentType("image/png").contentLength(3L).build();
-        when(s3.getObject(any(GetObjectRequest.class))).thenReturn(
-                new ResponseInputStream<>(meta, AbortableInputStream.create(new ByteArrayInputStream(new byte[3]))));
+        GetObjectResponse meta =
+                GetObjectResponse.builder().contentType("image/png").contentLength(3L).build();
+        when(s3.getObject(any(GetObjectRequest.class)))
+                .thenReturn(
+                        new ResponseInputStream<>(
+                                meta,
+                                AbortableInputStream.create(
+                                        new ByteArrayInputStream(new byte[3]))));
 
         StoredObject o = storage.get("k.png");
 
@@ -57,14 +62,16 @@ class S3StorageServiceTest {
 
     @Test
     void getMissingKeyIsNotFound() {
-        when(s3.getObject(any(GetObjectRequest.class))).thenThrow(NoSuchKeyException.builder().build());
+        when(s3.getObject(any(GetObjectRequest.class)))
+                .thenThrow(NoSuchKeyException.builder().build());
         assertThatThrownBy(() -> storage.get("nope")).isInstanceOf(NotFoundException.class);
     }
 
     @Test
     void deleteTargetsConfiguredBucket() {
         storage.delete("k.jpg");
-        ArgumentCaptor<DeleteObjectRequest> req = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        ArgumentCaptor<DeleteObjectRequest> req =
+                ArgumentCaptor.forClass(DeleteObjectRequest.class);
         verify(s3).deleteObject(req.capture());
         assertThat(req.getValue().bucket()).isEqualTo("media");
         assertThat(req.getValue().key()).isEqualTo("k.jpg");
